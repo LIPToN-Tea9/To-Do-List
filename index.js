@@ -8,53 +8,103 @@ let allBtn = document.getElementById("allBtn");
 let activeBtn = document.getElementById("activeBtn");
 let completedBtn = document.getElementById("completedBtn");
 
-function createTask(text) {
-  if (text !== "") {
-    const newTask = document.createElement("li");
-    newTask.setAttribute("class", "active");
-    const label = document.createElement("label");
-    label.setAttribute("class", "checkField");
-    const input = document.createElement("input");
-    input.setAttribute("type", "checkbox");
-    input.setAttribute("class", "check");
-    label.append(input);
-    const span = document.createElement("span");
-    span.setAttribute("class", "texti");
-    span.innerHTML = text;
-    const img = document.createElement("img");
-    img.setAttribute("src", "img/Trash.png");
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 
-    noTask.setAttribute("class", "hiddenP");
-
-    newTask.append(label, span, img);
-
-    list.prepend(newTask);
-  }
+function saveTasks() {
+  localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
+function toggleNoTask() {
+  noTask.classList.toggle("hiddenP", tasks.length > 0);
+}
+
+function renderTasks() {
+  list.innerHTML = "";
+  tasks.forEach(task => createTask(task, false));
+  toggleNoTask();
+}
+
+renderTasks();
+
+function createTask(task, save = true) {
+  const { id, text, completed } = task;
+
+  if (text !== "") {
+
+    const newTask = document.createElement("li");
+    newTask.dataset.id = id;
+    newTask.className = "active"
+
+    const label = document.createElement("label");
+    label.className = "checkField";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.className = "check";
+    input.checked = completed;
+
+    const span = document.createElement("span");
+    span.className = "texti";
+    span.innerHTML = text;
+
+    const img = document.createElement("img");
+    img.src = "img/Trash.png";
+
+    if (completed) newTask.classList.add("completed");
+
+    label.append(input);
+    newTask.append(label, span, img);
+    list.append(newTask);
+
+    noTask.classList.add("hiddenP");
+
+    //  виконано
+  input.addEventListener("change", () => {
+    const taskId = Number(newTask.dataset.id);
+    const currentTask = tasks.find(t => t.id === taskId);
+    currentTask.completed = input.checked;
+    saveTasks();
+  });
+
+  //  видалення
+  img.addEventListener("click", () => {
+    const taskId = Number(newTask.dataset.id);
+    tasks = tasks.filter(t => t.id !== taskId);
+    newTask.remove();
+    saveTasks();
+  });
+
+  if (save) {
+    tasks.push(task);
+    saveTasks();
+  }
+}}
+
+
 addBtn.addEventListener("click", () => {
-  createTask(addInput.value);
+  const text = addInput.value.trim();
+  if (!text) return;
+
+  const newTask = {
+    id: Date.now(),
+    text,
+    completed: false
+  };
+
+  createTask(newTask);
   addInput.value = "";
 });
 
-list.addEventListener("click", function (e) {
-  if (e.target.tagName === "IMG") {
-    e.target.parentElement.remove();
-  }
-});
-
 clearCompletedBtn.addEventListener("click", () => {
-  const completedTasks = document.querySelectorAll(".check:checked");
-  completedTasks.forEach((checkbox) => {
-    checkbox.closest("li").remove();
-  });
+  tasks = tasks.filter(task => !task.completed);
+  saveTasks();
+  renderTasks();
 });
 
 clearAllBtn.addEventListener("click", () => {
-  const allTasks = document.querySelectorAll("li");
-  allTasks.forEach((task) => {
-    task.remove();
-  });
+  tasks = [];
+  saveTasks();
+  renderTasks();
 });
 
 allBtn.addEventListener("click", () => {
